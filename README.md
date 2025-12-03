@@ -3,7 +3,7 @@
 [![npm version](https://badge.fury.io/js/@deltadao%2Fpontusx-registry-hooks.svg)](https://www.npmjs.com/package/@deltadao/pontusx-registry-hooks)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/@deltadao/pontusx-registry-hooks)](https://bundlephobia.com/package/@deltadao/pontusx-registry-hooks)
 
-Lightweight React hooks (~5kb) to resolve Web3 addresses to legal identities via the Pontus-X Registry API.
+Lightweight React hooks (<5kb) to resolve Web3 addresses to legal identities via the Pontus-X Registry API.
 
 ## Features
 
@@ -28,13 +28,14 @@ pnpm add @deltadao/pontusx-registry-hooks swr
 import { usePontusXIdentity } from '@deltadao/pontusx-registry-hooks'
 
 function UserProfile({ walletAddress }) {
-  const { identity, isLoading, error, legalName } = usePontusXIdentity(walletAddress)
+  const { identity, isLoading, error, isFound } =
+    usePontusXIdentity(walletAddress)
 
   if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error loading identity</div>
-  if (!identity) return <div>Unknown address</div>
+  if (!isFound) return <div>Unknown address</div>
 
-  return <div>{JSON.stringify(legalName)}</div>
+  return <div>{identity?.legalName}</div>
 }
 ```
 
@@ -46,7 +47,7 @@ import { usePontusXIdentityByContract } from '@deltadao/pontusx-registry-hooks'
 function IdentityDetails({ contractAddress, walletAddress }) {
   const { identity, isLoading, error } = usePontusXIdentityByContract(
     contractAddress,
-    walletAddress
+    walletAddress,
   )
 
   if (isLoading) return <div>Loading...</div>
@@ -55,7 +56,7 @@ function IdentityDetails({ contractAddress, walletAddress }) {
 
   return (
     <div>
-      <h3>{JSON.stringify(identity.legalName)}</h3>
+      <h3>{identity.legalName}</h3>
       <p>Token ID: {identity.tokenId}</p>
       <p>Updated: {new Date(identity.updatedAt).toLocaleDateString()}</p>
     </div>
@@ -78,7 +79,7 @@ function RegistryList() {
     <ul>
       {data?.map((identity) => (
         <li key={identity.walletAddress}>
-          {JSON.stringify(identity.legalName)} - {identity.walletAddress}
+          {identity.legalName} - {identity.walletAddress}
         </li>
       ))}
     </ul>
@@ -91,7 +92,8 @@ function RegistryList() {
 ```tsx
 const { identity } = usePontusXIdentity(address, {
   apiBaseUrl: 'https://your-custom-registry.com',
-  apiVersion: 'v1'
+  apiVersion: 'v1',
+  batchSize: 50, // Customize pagination batch size
 })
 ```
 
@@ -99,22 +101,29 @@ const { identity } = usePontusXIdentity(address, {
 
 ### `usePontusXIdentity(walletAddress, config?)`
 
-Resolves a single Web3 wallet address to its legal identity. Uses the cached registry data for instant lookups.
+Resolves a single Web3 wallet address to its legal identity. Uses the cached registry data for instant lookups. Address comparison is case-insensitive.
 
 **Parameters:**
 
 - `walletAddress` (string | undefined): The wallet address to look up (case-insensitive)
 - `config` (optional): Configuration object
-  - `apiBaseUrl` (string): Custom API base URL
-  - `apiVersion` (ApiVersion): API version to use
+  - `apiBaseUrl` (string): Custom API base URL (default: `https://cache.registry.pontus-x.eu`)
+  - `apiVersion` (ApiVersion): API version to use (default: `v1`)
+  - `batchSize` (number): Batch size for pagination (default: `100`)
 
 **Returns:**
 
 - `identity` (PontusXIdentity | undefined): The resolved identity
 - `isLoading` (boolean): Loading state
 - `error` (Error | undefined): Error if fetch failed
-- `isFound` (boolean): Whether the identity was found
-- `legalName` (object | null): Convenience accessor for legal name
+- `isFound` (boolean): Convenience flag indicating whether identity was found
+- `legalName` (string | null): Convenience accessor for the entity's legal name
+
+**Caching:**
+
+- Relies on `usePontusXRegistry` for cached data
+- No additional network request if registry is already loaded
+- Cache deduping interval: 1 minute
 
 ### `usePontusXIdentityByContract(contractAddress, walletAddress, config?)`
 
@@ -125,57 +134,102 @@ Fetches a specific identity directly from the API using both contract and wallet
 - `contractAddress` (string | undefined): The contract address of the registry
 - `walletAddress` (string | undefined): The wallet address (owner of the identity)
 - `config` (optional): Configuration object
-  - `apiBaseUrl` (string): Custom API base URL
-  - `apiVersion` (ApiVersion): API version to use
+  - `apiBaseUrl` (string): Custom API base URL (default: `https://cache.registry.pontus-x.eu`)
+  - `apiVersion` (ApiVersion): API version to use (default: `v1`)
+  - `batchSize` (number): Batch size for pagination (default: `100`)
 
 **Returns:**
 
 - `identity` (PontusXIdentity | undefined): The resolved identity
 - `isLoading` (boolean): Loading state
 - `error` (Error | undefined): Error if fetch failed
-- `isFound` (boolean): Whether the identity was found
-- `legalName` (object | null): Convenience accessor for legal name
+- `isFound` (boolean): Convenience flag indicating whether identity was found
+- `legalName` (string | null): Convenience accessor for the entity's legal name
+
+**Caching:**
+
+- Direct API calls with no dependency on registry cache
+- Strict caching with 5 minute deduping interval (identities rarely change)
+- Returns 404 error for non-existent identities
 
 ### `usePontusXRegistry(config?)`
 
-Fetches the entire Pontus-X Registry. Data is cached globally and reused across all hooks.
+Fetches the entire Pontus-X Registry. Data is cached globally and reused across all hooks. Use this when you need the complete registry or when making multiple lookups to avoid repeated fetches.
 
-**Pagination**: Automatically fetches all pages in parallel after the first page. The first request fetches page 1 with a batch size of 100 items, then fetches all remaining pages simultaneously for optimal performance.
+**Pagination**: Automatically fetches all pages in parallel after the first page for optimal performance.
+
+1. Fetches page 1 with configurable batch size (default: 100 items)
+2. Fetches all remaining pages simultaneously using `Promise.all()`
+3. Aggregates all results into a single array
 
 **Parameters:**
 
 - `config` (optional): Configuration object
-  - `apiBaseUrl` (string): Custom API base URL
-  - `apiVersion` (ApiVersion): API version to use
+  - `apiBaseUrl` (string): Custom API base URL (default: `https://cache.registry.pontus-x.eu`)
+  - `apiVersion` (ApiVersion): API version to use (default: `v1`)
+  - `batchSize` (number): Batch size for paginated requests (default: `100`)
 
 **Returns:** Standard SWR response object
 
-- `data` (PontusXIdentity[] | undefined): The registry data
+- `data` (PontusXIdentity[] | undefined): The complete registry data
 - `error` (Error | undefined): Error if fetch failed
 - `isLoading` (boolean): Loading state
+
+**Caching:**
+
+- Global cache: data is reused across all hook instances
+- No revalidation on window focus or network reconnect
+- Cache deduping interval: 1 minute
+
+## Constants
+
+The library exports useful constants for configuration:
+
+```typescript
+import {
+  DEFAULT_API_BASE_URL, // 'https://cache.registry.pontus-x.eu'
+  DEFAULT_API_VERSION, // 'v1'
+  DEFAULT_BATCH_SIZE, // 100
+  API_VERSIONS, // { v1: { identities: '/identities', identity: '...' } }
+} from '@deltadao/pontusx-registry-hooks'
+```
 
 ## Types
 
 ```typescript
 interface PontusXIdentityV1 {
-  walletAddress: string
-  contractAddress: string
-  tokenId: string
-  txHash: string
-  lastBlockNumber: string
-  blockTime: string
-  legalName: object | null
-  presentationUrl: object | null
-  credentialsData: object
-  createdAt: string
-  updatedAt: string
+  walletAddress: string // Wallet address (owner of the identity)
+  contractAddress: string // Contract address of the registry
+  tokenId: string // Token ID on the blockchain
+  txHash: string // Transaction hash
+  lastBlockNumber: string // Last block number synced
+  blockTime: string // Block timestamp (ISO 8601)
+  legalName: string | null // Legal name of the entity
+  presentationUrl: string | null // URL of the verifiable presentation
+  credentialsData: Record<string, object> // Flattened credentials data
+  createdAt: string // Creation timestamp (ISO 8601)
+  updatedAt: string // Last update timestamp (ISO 8601)
 }
 
-type PontusXIdentity = PontusXIdentityV1
+type PontusXIdentity<V extends ApiVersion> = V extends 'v1'
+  ? PontusXIdentityV1
+  : never
+
+interface PaginationMeta {
+  total: number // Total number of items
+  page: number // Current page number
+  lastPage: number // Last page number
+}
+
+interface GetIdentitiesResponse<V extends ApiVersion> {
+  data: PontusXIdentity<V>[]
+  meta: PaginationMeta
+}
 
 interface PontusXRegistryConfig {
-  apiBaseUrl?: string
-  apiVersion?: ApiVersion
+  apiBaseUrl?: string // Custom API endpoint (default: 'https://cache.registry.pontus-x.eu')
+  apiVersion?: ApiVersion // API version to use (default: 'v1')
+  batchSize?: number // Batch size for paginated requests (default: 100)
 }
 ```
 
@@ -192,8 +246,31 @@ pnpm build
 pnpm dev
 
 # Type checking
+pnpm typecheck
+
+# Linting
 pnpm lint
+
+# Run tests
+pnpm test
 ```
+
+## Testing
+
+The library includes comprehensive unit tests using Vitest and MSW for API mocking:
+
+```bash
+# Run tests
+pnpm test
+```
+
+Tests cover:
+
+- Hook functionality and data fetching
+- Pagination handling with custom batch sizes
+- Case-insensitive address matching
+- Error handling for non-existent identities
+- Type correctness and structure validation
 
 ## Publishing
 
