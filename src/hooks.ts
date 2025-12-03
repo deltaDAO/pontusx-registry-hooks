@@ -4,6 +4,7 @@ import {
   API_VERSIONS,
   DEFAULT_API_BASE_URL,
   DEFAULT_API_VERSION,
+  DEFAULT_BATCH_SIZE,
 } from './constants'
 import {
   ApiVersion,
@@ -13,17 +14,59 @@ import {
 } from './types'
 
 /**
- * Fetcher function for SWR - list endpoint
+ * Fetcher function for SWR - list endpoint with pagination
+ * Fetches all pages in parallel after getting the first page
  */
 const listFetcher = async <V extends ApiVersion>(
   url: string,
-): Promise<GetIdentitiesResponse<V>['data']> => {
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch registry data: ${response.statusText}`)
+  batchSize: number = DEFAULT_BATCH_SIZE,
+): Promise<PontusXIdentity<V>[]> => {
+  let allIdentities: PontusXIdentity<V>[] = []
+  const currentPage = 1
+
+  // Parse the URL to add pagination parameters
+  const urlObj = new URL(url)
+  urlObj.searchParams.set('page', currentPage.toString())
+  urlObj.searchParams.set('limit', batchSize.toString())
+
+  // 1. Fetch the first page
+  const firstRes = await fetch(urlObj.toString())
+  if (!firstRes.ok) {
+    throw new Error(`Failed to fetch registry data: ${firstRes.statusText}`)
   }
-  const json: GetIdentitiesResponse<V> = await response.json()
-  return json.data
+
+  const firstJson: GetIdentitiesResponse<V> = await firstRes.json()
+  allIdentities = [...firstJson.data]
+
+  const { lastPage } = firstJson.meta
+
+  // 2. If there are more pages, fetch them in parallel
+  if (lastPage > 1) {
+    const remainingPages: Promise<GetIdentitiesResponse<V>>[] = []
+
+    // Create promises for all remaining pages at once (parallel fetching)
+    for (let page = 2; page <= lastPage; page++) {
+      const pageUrl = new URL(url)
+      pageUrl.searchParams.set('page', page.toString())
+      pageUrl.searchParams.set('limit', batchSize.toString())
+
+      remainingPages.push(
+        fetch(pageUrl.toString()).then((res) => {
+          if (!res.ok) throw new Error(`Failed to fetch page ${page}`)
+          return res.json()
+        }),
+      )
+    }
+
+    const results = await Promise.all(remainingPages)
+
+    // Combine results
+    results.forEach((json: GetIdentitiesResponse<V>) => {
+      allIdentities = [...allIdentities, ...json.data]
+    })
+  }
+
+  return allIdentities
 }
 
 /**
@@ -64,11 +107,15 @@ export function usePontusXRegistry<
     config?.apiBaseUrl || DEFAULT_API_BASE_URL,
   ).toString()
 
-  return useSWR<PontusXIdentity<V>[]>(apiUrl, listFetcher<V>, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    dedupingInterval: 60000, // 1 minute deduping
-  })
+  return useSWR<PontusXIdentity<V>[]>(
+    apiUrl,
+    (url) => listFetcher<V>(url, config?.batchSize || DEFAULT_BATCH_SIZE),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000, // 1 minute deduping
+    },
+  )
 }
 
 /**

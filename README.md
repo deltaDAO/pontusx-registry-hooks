@@ -9,6 +9,7 @@ Lightweight React hooks (~5kb) to resolve Web3 addresses to legal identities via
 
 - 🪶 **Minimal Bundle Size**: Uses SWR for efficient caching (~5kb)
 - ⚡ **Instant Lookups**: Cached registry prevents API spam when resolving 50+ addresses
+- 📄 **Smart Pagination**: Automatically fetches all pages in parallel for complete registry data
 - 🎯 **Type-Safe**: Full TypeScript support with strict mode
 - 🔄 **Framework Agnostic**: Works with Next.js, Vite, and any React app
 - 📦 **Zero Config**: Works out of the box with sensible defaults
@@ -138,6 +139,8 @@ Fetches a specific identity directly from the API using both contract and wallet
 ### `usePontusXRegistry(config?)`
 
 Fetches the entire Pontus-X Registry. Data is cached globally and reused across all hooks.
+
+**Pagination**: Automatically fetches all pages in parallel after the first page. The first request fetches page 1 with a batch size of 100 items, then fetches all remaining pages simultaneously for optimal performance.
 
 **Parameters:**
 

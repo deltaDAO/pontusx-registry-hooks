@@ -75,4 +75,10 @@ export interface PontusXRegistryConfig {
    * @default "v1"
    */
   apiVersion?: ApiVersion
+
+  /**
+   * Batch size for paginated requests
+   * @default 100
+   */
+  batchSize?: number
 }

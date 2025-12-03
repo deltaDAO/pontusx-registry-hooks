@@ -23,4 +23,5 @@ export {
   API_VERSIONS,
   DEFAULT_API_BASE_URL,
   DEFAULT_API_VERSION,
+  DEFAULT_BATCH_SIZE,
 } from './constants'
