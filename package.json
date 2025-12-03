@@ -25,9 +25,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:ui": "vitest --ui",
+    "test": "vitest run",
     "release": "pnpm build && changeset publish"
   },
   "peerDependencies": {
