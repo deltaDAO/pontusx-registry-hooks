@@ -212,4 +212,4 @@ pnpm release
 
 ## License
 
-MIT © deltaDAO
+Apache 2.0 © deltaDAO
