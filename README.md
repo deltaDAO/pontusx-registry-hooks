@@ -1,7 +1,9 @@
 # @deltadao/pontusx-registry-hooks
 
-[![npm version](https://badge.fury.io/js/@deltadao%2Fpontusx-registry-hooks.svg)](https://www.npmjs.com/package/@deltadao/pontusx-registry-hooks)
+[![NPM Version](https://img.shields.io/npm/v/@deltadao/pontusx-registry-hooks)](https://npmjs.org/packages/@deltadao/pontusx-registry-hooks)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/@deltadao/pontusx-registry-hooks)](https://bundlephobia.com/package/@deltadao/pontusx-registry-hooks)
+[![GitHub branch status](https://img.shields.io/github/checks-status/deltaDAO/pontusx-registry-hooks/main)](https://github.com/deltaDAO/pontusx-registry-hooks)
+[![GitHub License](https://img.shields.io/github/license/deltaDAO/pontusx-registry-hooks)](https://img.shields.io/github/license/deltaDAO/pontusx-registry-hooks)
 
 Lightweight React hooks (<5kb) to resolve Web3 addresses to legal identities via the Pontus-X Registry API.
 
