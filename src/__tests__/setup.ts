@@ -9,7 +9,7 @@ import { mockPaginatedResponse } from './fixtures'
  */
 export const server = setupServer(
   // Mock the identities list endpoint
-  http.get(`${DEFAULT_API_BASE_URL}/identities`, ({ request }) => {
+  http.get(`${DEFAULT_API_BASE_URL}/v1/identities`, ({ request }) => {
     const url = new URL(request.url)
     const page = parseInt(url.searchParams.get('page') || '1', 10)
     const limit = parseInt(url.searchParams.get('limit') || '20', 10)
@@ -31,7 +31,7 @@ export const server = setupServer(
 
   // Mock the single identity endpoint
   http.get(
-    `${DEFAULT_API_BASE_URL}/identities/:contractAddress/:walletAddress`,
+    `${DEFAULT_API_BASE_URL}/v1/identities/:contractAddress/:walletAddress`,
     ({ params }) => {
       const { contractAddress, walletAddress } = params
       const identity = mockPaginatedResponse.data.find(
