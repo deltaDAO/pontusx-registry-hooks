@@ -165,7 +165,7 @@ export function usePontusXRegistry<
     data: deprecatedData,
     isLoading: deprecatedIsLoading,
     error: deprecatedError,
-  } = usePontusXRegistryDeprecated(config?.includeDeprecated)
+  } = usePontusXRegistryDeprecated()
 
   const combinedData = useMemo(() => {
     if (!config?.includeDeprecated || !deprecatedData) {
