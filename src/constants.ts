@@ -15,7 +15,7 @@ export const DEFAULT_BATCH_SIZE = 100 as const
  */
 export const API_VERSIONS = {
   v1: {
-    identities: '/identities',
-    identity: '/identities/:contractAddress/:walletAddress',
+    identities: '/v1/identities',
+    identity: '/v1/identities/:contractAddress/:walletAddress',
   },
 } as const
