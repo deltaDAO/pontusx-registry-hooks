@@ -1,5 +1,5 @@
 ---
-'@deltadao/pontusx-registry-hooks': patch
+'@deltadao/pontusx-registry-hooks': minor
 ---
 
 Added support for the deprecated v0.x registry via `includeDeprecated` option in `usePontusXRegistry`.
