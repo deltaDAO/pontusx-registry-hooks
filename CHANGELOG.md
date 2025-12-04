@@ -1,5 +1,12 @@
 # @deltadao/pontusx-registry-hooks
 
+## 0.1.1
+
+### Patch Changes
+
+- [#4](https://github.com/deltaDAO/pontusx-registry-hooks/pull/4) [`dc3f952`](https://github.com/deltaDAO/pontusx-registry-hooks/commit/dc3f9523fced9e6a143f66b80170baf848733070) Thanks [@moritzkirstein](https://github.com/moritzkirstein)! - Update API_VERSION endpoints for v1
+  - includes `/v1/` in api endpoints
+
 ## 0.1.0
 
 ### Minor Changes
