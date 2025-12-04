@@ -1,5 +1,9 @@
 # @deltadao/pontusx-registry-hooks
 
+## 0.2.1
+
+- version bump
+
 ## 0.2.0
 
 ### Minor Changes
