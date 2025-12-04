@@ -79,7 +79,7 @@ function RegistryList() {
     <ul>
       {data?.map((identity) => (
         <li key={identity.walletAddress}>
-          {identity.legalName} - {identity.walletAddress}
+          {identity.legalName} - {identity.walletAddress} ({identity.version})
         </li>
       ))}
     </ul>
@@ -95,6 +95,28 @@ const { identity } = usePontusXIdentity(address, {
   apiVersion: 'v1',
   batchSize: 50, // Customize pagination batch size
 })
+```
+
+### Deprecated Registry Support (v0.x)
+
+To support the migration period, you can include identities from the deprecated v0.x JSON registry. These entries will be merged with the v1 API data.
+
+If an identity exists in both the new registry (v1) and the deprecated list (0.x), the v1 entry takes precedence.
+
+All returned identities include a `version` flag (`'v1'` or `'0.x'`) to help distinguish the source.
+
+```tsx
+const { data } = usePontusXRegistry({
+  includeDeprecated: true, // Enable legacy JSON support
+})
+```
+
+You can also use the deprecated hook directly if needed:
+
+```tsx
+import { usePontusXRegistryDeprecated } from '@deltadao/pontusx-registry-hooks'
+
+const { data } = usePontusXRegistryDeprecated()
 ```
 
 ## API

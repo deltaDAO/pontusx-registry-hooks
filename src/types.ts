@@ -28,6 +28,8 @@ interface PontusXIdentityV1 {
   createdAt: string
   /** Last update timestamp */
   updatedAt: string
+  /** API Version */
+  version: 'v1'
 }
 
 /**
@@ -48,6 +50,19 @@ export interface PaginationMeta {
   page: number
   /** Last page number */
   lastPage: number
+}
+
+/**
+ * Deprecated identity structure from v0.x JSON file
+ * @deprecated This type is for the legacy JSON-based registry and will be removed in future versions.
+ */
+export interface PontusXIdentityDeprecated {
+  /** Wallet address (owner of the identity) */
+  walletAddress: string
+  /** Legal name of the entity */
+  legalName: string
+  /** API Version */
+  version: '0.x'
 }
 
 /**
@@ -81,4 +96,10 @@ export interface PontusXRegistryConfig {
    * @default 100
    */
   batchSize?: number
+
+  /**
+   * Whether to include deprecated identities from the v0.x JSON file
+   * @default false
+   */
+  includeDeprecated?: boolean
 }

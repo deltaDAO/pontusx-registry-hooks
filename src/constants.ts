@@ -6,6 +6,12 @@ export const DEFAULT_API_BASE_URL =
 export const DEFAULT_API_VERSION: ApiVersion = 'v1' as const
 
 /**
+ * URL for the deprecated v0.x JSON registry
+ */
+export const DEPRECATED_REGISTRY_URL =
+  'https://raw.githubusercontent.com/deltaDAO/mvg-portal/refs/heads/main/pontusxAddresses.json' as const
+
+/**
  * Default batch size for paginated requests
  */
 export const DEFAULT_BATCH_SIZE = 100 as const

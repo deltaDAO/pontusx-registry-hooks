@@ -2,10 +2,15 @@ import { describe, it, expect } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import {
   usePontusXRegistry,
+  usePontusXRegistryDeprecated,
   usePontusXIdentity,
   usePontusXIdentityByContract,
 } from '../hooks'
-import { mockDeltaDAOIdentities } from './fixtures'
+import {
+  mockDeltaDAOIdentities,
+  mockDeprecatedDeltaDAOIdentities,
+} from './fixtures'
+import { PontusXIdentity } from '../types'
 
 describe('usePontusXRegistry', () => {
   it('should fetch all identities', async () => {
@@ -19,7 +24,83 @@ describe('usePontusXRegistry', () => {
 
     expect(result.current.data).toBeDefined()
     expect(result.current.data?.length).toBeGreaterThan(0)
+    expect(result.current.data?.[0].version).toBe('v1')
     expect(result.current.error).toBeUndefined()
+  })
+
+  it('should include deprecated identities when configured', async () => {
+    const [targetDeprecatedIdentityAddress, targetDeprecatedIdentityName] =
+      Object.entries(mockDeprecatedDeltaDAOIdentities)[0]
+    const { result } = renderHook(() =>
+      usePontusXRegistry({ includeDeprecated: true }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.data).toBeDefined()
+    const deprecatedIdentity = result.current.data?.find(
+      (id) => id.walletAddress === targetDeprecatedIdentityAddress,
+    )
+    expect(deprecatedIdentity).toBeDefined()
+    expect(deprecatedIdentity?.legalName).toBe(targetDeprecatedIdentityName)
+    expect(deprecatedIdentity?.version).toBe('0.x')
+  })
+
+  it('should prioritize v1 identities over deprecated ones when duplicates exist', async () => {
+    const targetIdentity = mockDeltaDAOIdentities[0]
+    const { result } = renderHook(() =>
+      usePontusXRegistry({ includeDeprecated: true }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.data).toBeDefined()
+
+    // The address that exists in both registries
+    const duplicateAddress = targetIdentity.walletAddress
+
+    const identity = result.current.data?.find(
+      (id) => id.walletAddress.toLowerCase() === duplicateAddress.toLowerCase(),
+    )
+
+    expect(identity).toBeDefined()
+    // Should have the v1 version and name, not the deprecated name ("Old deltaDAO Name")
+    expect(identity?.version).toBe('v1')
+    expect(identity?.legalName).toBe(targetIdentity.legalName)
+    // Ensure v1 specific fields are present
+    expect((identity as PontusXIdentity<'v1'>)?.txHash).toBeDefined()
+
+    // Ensure we don't have two entries for the same address
+    const duplicates = result.current.data?.filter(
+      (id) => id.walletAddress.toLowerCase() === duplicateAddress.toLowerCase(),
+    )
+    expect(duplicates?.length).toBe(1)
+  })
+})
+
+describe('usePontusXRegistryDeprecated', () => {
+  it('should fetch deprecated identities', async () => {
+    const [targetDeprecatedIdentityAddress, targetDeprecatedIdentityName] =
+      Object.entries(mockDeprecatedDeltaDAOIdentities)[0]
+    const { result } = renderHook(() => usePontusXRegistryDeprecated())
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.data).toBeDefined()
+    expect(result.current.data?.length).toBe(3)
+    expect(result.current.data?.[0].walletAddress).toBe(
+      targetDeprecatedIdentityAddress,
+    )
+    expect(result.current.data?.[0].legalName).toBe(
+      targetDeprecatedIdentityName,
+    )
+    expect(result.current.data?.[0].version).toBe('0.x')
   })
 })
 
