@@ -1,5 +1,12 @@
 # @deltadao/pontusx-registry-hooks
 
+## 0.2.0
+
+### Minor Changes
+
+- [#5](https://github.com/deltaDAO/pontusx-registry-hooks/pull/5) [`150c60d`](https://github.com/deltaDAO/pontusx-registry-hooks/commit/150c60de3a4d6208c383767a24b148a8fbbe055a) Thanks [@moritzkirstein](https://github.com/moritzkirstein)! - Added support for the deprecated v0.x registry via `includeDeprecated` option in `usePontusXRegistry`.
+  The `version` flag has been added to identities to distinguish between 'v1' and '0.x' entries.
+
 ## 0.1.1
 
 ### Patch Changes
