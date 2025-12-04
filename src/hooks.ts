@@ -114,13 +114,12 @@ const deprecatedFetcher = async (
 /**
  * Hook to fetch the deprecated v0.x registry
  *
- * @param enabled - Whether to enable the hook (default: true)
  * @returns SWR response with the deprecated registry data
  * @deprecated This hook is for the legacy JSON-based registry and will be removed in future versions.
  */
-export function usePontusXRegistryDeprecated(enabled: boolean = true) {
+export function usePontusXRegistryDeprecated() {
   return useSWR<PontusXIdentityDeprecated[]>(
-    enabled ? DEPRECATED_REGISTRY_URL : null,
+    DEPRECATED_REGISTRY_URL,
     deprecatedFetcher,
     {
       revalidateOnFocus: false,
