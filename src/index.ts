@@ -7,6 +7,7 @@
 
 export type {
   PontusXIdentity,
+  PontusXIdentityDeprecated,
   PontusXRegistryConfig,
   GetIdentitiesResponse,
   PaginationMeta,
@@ -15,6 +16,7 @@ export type {
 
 export {
   usePontusXRegistry,
+  usePontusXRegistryDeprecated,
   usePontusXIdentity,
   usePontusXIdentityByContract,
 } from './hooks'

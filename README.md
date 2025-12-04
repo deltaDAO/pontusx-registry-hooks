@@ -1,7 +1,9 @@
 # @deltadao/pontusx-registry-hooks
 
-[![npm version](https://badge.fury.io/js/@deltadao%2Fpontusx-registry-hooks.svg)](https://www.npmjs.com/package/@deltadao/pontusx-registry-hooks)
+[![NPM Version](https://img.shields.io/npm/v/@deltadao/pontusx-registry-hooks)](https://www.npmjs.com/package/@deltadao/pontusx-registry-hooks)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/@deltadao/pontusx-registry-hooks)](https://bundlephobia.com/package/@deltadao/pontusx-registry-hooks)
+[![GitHub branch status](https://img.shields.io/github/checks-status/deltaDAO/pontusx-registry-hooks/main)](https://github.com/deltaDAO/pontusx-registry-hooks)
+[![GitHub License](https://img.shields.io/github/license/deltaDAO/pontusx-registry-hooks)](https://img.shields.io/github/license/deltaDAO/pontusx-registry-hooks)
 
 Lightweight React hooks (<5kb) to resolve Web3 addresses to legal identities via the Pontus-X Registry API.
 
@@ -79,7 +81,7 @@ function RegistryList() {
     <ul>
       {data?.map((identity) => (
         <li key={identity.walletAddress}>
-          {identity.legalName} - {identity.walletAddress}
+          {identity.legalName} - {identity.walletAddress} ({identity.version})
         </li>
       ))}
     </ul>
@@ -95,6 +97,28 @@ const { identity } = usePontusXIdentity(address, {
   apiVersion: 'v1',
   batchSize: 50, // Customize pagination batch size
 })
+```
+
+### Deprecated Registry Support (v0.x)
+
+To support the migration period, you can include identities from the deprecated v0.x JSON registry. These entries will be merged with the v1 API data.
+
+If an identity exists in both the new registry (v1) and the deprecated list (0.x), the v1 entry takes precedence.
+
+All returned identities include a `version` flag (`'v1'` or `'0.x'`) to help distinguish the source.
+
+```tsx
+const { data } = usePontusXRegistry({
+  includeDeprecated: true, // Enable legacy JSON support
+})
+```
+
+You can also use the deprecated hook directly if needed:
+
+```tsx
+import { usePontusXRegistryDeprecated } from '@deltadao/pontusx-registry-hooks'
+
+const { data } = usePontusXRegistryDeprecated()
 ```
 
 ## API

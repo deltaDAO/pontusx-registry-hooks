@@ -5,11 +5,13 @@ import {
   DEFAULT_API_BASE_URL,
   DEFAULT_API_VERSION,
   DEFAULT_BATCH_SIZE,
+  DEPRECATED_REGISTRY_URL,
 } from './constants'
 import {
   ApiVersion,
   type GetIdentitiesResponse,
   type PontusXIdentity,
+  type PontusXIdentityDeprecated,
   type PontusXRegistryConfig,
 } from './types'
 
@@ -36,7 +38,10 @@ const listFetcher = async <V extends ApiVersion>(
   }
 
   const firstJson: GetIdentitiesResponse<V> = await firstRes.json()
-  allIdentities = [...firstJson.data]
+  allIdentities = firstJson.data.map((identity) => ({
+    ...identity,
+    version: 'v1',
+  })) as PontusXIdentity<V>[]
 
   const { lastPage } = firstJson.meta
 
@@ -62,7 +67,11 @@ const listFetcher = async <V extends ApiVersion>(
 
     // Combine results
     results.forEach((json: GetIdentitiesResponse<V>) => {
-      allIdentities = [...allIdentities, ...json.data]
+      const pageIdentities = json.data.map((identity) => ({
+        ...identity,
+        version: 'v1',
+      })) as PontusXIdentity<V>[]
+      allIdentities = [...allIdentities, ...pageIdentities]
     })
   }
 
@@ -82,7 +91,42 @@ const identityFetcher = async <V extends ApiVersion>(
     }
     throw new Error(`Failed to fetch identity: ${response.statusText}`)
   }
-  return response.json()
+  const json = await response.json()
+  return { ...json, version: 'v1' }
+}
+
+/**
+ * Fetcher function for the deprecated JSON registry
+ */
+const deprecatedFetcher = async (
+  url: string,
+): Promise<PontusXIdentityDeprecated[]> => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Failed to fetch deprecated registry')
+  const json = await res.json()
+  return Object.entries(json).map(([walletAddress, legalName]) => ({
+    walletAddress,
+    legalName: legalName as string,
+    version: '0.x',
+  }))
+}
+
+/**
+ * Hook to fetch the deprecated v0.x registry
+ *
+ * @returns SWR response with the deprecated registry data
+ * @deprecated This hook is for the legacy JSON-based registry and will be removed in future versions.
+ */
+export function usePontusXRegistryDeprecated() {
+  return useSWR<PontusXIdentityDeprecated[]>(
+    DEPRECATED_REGISTRY_URL,
+    deprecatedFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 3600000, // 1 hour - static file
+    },
+  )
 }
 
 /**
@@ -107,7 +151,7 @@ export function usePontusXRegistry<
     config?.apiBaseUrl || DEFAULT_API_BASE_URL,
   ).toString()
 
-  return useSWR<PontusXIdentity<V>[]>(
+  const swrResponse = useSWR<PontusXIdentity<V>[]>(
     apiUrl,
     (url) => listFetcher<V>(url, config?.batchSize || DEFAULT_BATCH_SIZE),
     {
@@ -116,6 +160,40 @@ export function usePontusXRegistry<
       dedupingInterval: 60000, // 1 minute deduping
     },
   )
+
+  const {
+    data: deprecatedData,
+    isLoading: deprecatedIsLoading,
+    error: deprecatedError,
+  } = usePontusXRegistryDeprecated()
+
+  const combinedData = useMemo(() => {
+    if (!config?.includeDeprecated || !deprecatedData) {
+      return swrResponse.data
+    }
+
+    const currentData = swrResponse.data || []
+    const currentAddresses = new Set(
+      currentData.map((id) => id.walletAddress.toLowerCase()),
+    )
+
+    const uniqueDeprecated = deprecatedData.filter(
+      (id) => !currentAddresses.has(id.walletAddress.toLowerCase()),
+    )
+
+    return [...currentData, ...uniqueDeprecated]
+  }, [swrResponse.data, deprecatedData, config?.includeDeprecated])
+
+  return {
+    ...swrResponse,
+    data: combinedData as
+      | (PontusXIdentity<V> | PontusXIdentityDeprecated)[]
+      | undefined,
+    isLoading:
+      swrResponse.isLoading ||
+      (!!config?.includeDeprecated && deprecatedIsLoading),
+    error: swrResponse.error || (config?.includeDeprecated && deprecatedError),
+  }
 }
 
 /**

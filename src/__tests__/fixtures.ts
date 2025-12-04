@@ -3,6 +3,16 @@ import { type GetIdentitiesResponse, type PontusXIdentity } from '../types'
 /**
  * Mock deltaDAO identities from the staging registry
  */
+export const mockDeprecatedDeltaDAOIdentities: Record<string, string> = {
+  '0xDeprecated1': 'Deprecated Entity 1',
+  '0xDeprecated2': 'Deprecated Entity 2',
+  // This address exists in the new registry (mockDeltaDAOIdentities[0])
+  '0xe0d15ab8d5ef763a46757509daac262dbc357712': 'Old deltaDAO Name',
+}
+
+/**
+ * Mock deltaDAO identities from the staging registry
+ */
 export const mockDeltaDAOIdentities: PontusXIdentity<'v1'>[] = [
   {
     walletAddress: '0xe0d15ab8d5ef763a46757509daac262dbc357712',
@@ -34,6 +44,7 @@ export const mockDeltaDAOIdentities: PontusXIdentity<'v1'>[] = [
         'schema:leiCode': '391200FJBNU0YW987L26',
       },
     },
+    version: 'v1',
     createdAt: '2025-12-03T00:10:42.348Z',
     updatedAt: '2025-12-03T00:10:42.348Z',
   },
@@ -55,6 +66,7 @@ export const mockDeltaDAOIdentities: PontusXIdentity<'v1'>[] = [
         'gx:country': 'Germany',
       },
     },
+    version: 'v1',
     createdAt: '2025-12-03T00:10:41.677Z',
     updatedAt: '2025-12-03T00:10:41.677Z',
   },

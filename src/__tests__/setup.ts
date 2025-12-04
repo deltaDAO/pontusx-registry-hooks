@@ -1,8 +1,11 @@
 import { afterEach, afterAll, beforeAll, vi } from 'vitest'
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
-import { DEFAULT_API_BASE_URL } from '../constants'
-import { mockPaginatedResponse } from './fixtures'
+import { DEFAULT_API_BASE_URL, DEPRECATED_REGISTRY_URL } from '../constants'
+import {
+  mockDeprecatedDeltaDAOIdentities,
+  mockPaginatedResponse,
+} from './fixtures'
 
 /**
  * Mock Service Worker setup for API mocking
@@ -52,6 +55,11 @@ export const server = setupServer(
       return HttpResponse.json(identity)
     },
   ),
+
+  // Mock the deprecated JSON registry
+  http.get(DEPRECATED_REGISTRY_URL, () => {
+    return HttpResponse.json(mockDeprecatedDeltaDAOIdentities)
+  }),
 )
 
 // Start server before all tests
