@@ -1,6 +1,6 @@
 {
   "name": "@deltadao/pontusx-registry-hooks",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Lightweight React hooks to resolve Web3 addresses to legal identities via Pontus-X Registry",
   "type": "module",
   "main": "./dist/index.cjs",
