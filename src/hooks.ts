@@ -19,8 +19,8 @@ import {
 /**
  * Helper function to check if an identity matches the search criteria
  */
-const matchIdentity = (
-  identity: PontusXIdentity<any> | PontusXIdentityDeprecated,
+const matchIdentity = <V extends ApiVersion = 'v1'>(
+  identity: PontusXIdentity<V> | PontusXIdentityDeprecated,
   search: PontusXSearchCriteria,
 ): boolean => {
   // 1. Wallet Address Search (Exact match, case-insensitive)
@@ -57,7 +57,7 @@ const matchIdentity = (
 
     // Check if any credential value matches the search term
     // We specifically look for values in the credential objects
-    const hasMatch = Object.values(credentials).some((credential: any) => {
+    const hasMatch = Object.values(credentials).some((credential: unknown) => {
       if (!credential || typeof credential !== 'object') return false
 
       return Object.values(credential).some((value) => {
@@ -91,7 +91,7 @@ const matchIdentity = (
       return false
     }
 
-    const hasMatch = Object.values(credentials).some((credential: any) => {
+    const hasMatch = Object.values(credentials).some((credential: unknown) => {
       if (!credential || typeof credential !== 'object') return false
 
       return Object.values(credential).some((value) => {
