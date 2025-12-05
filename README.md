@@ -89,6 +89,81 @@ function RegistryList() {
 }
 ```
 
+### Search Identities
+
+The `usePontusXRegistry` hook supports powerful search capabilities to filter identities by multiple criteria:
+
+```tsx
+import { usePontusXRegistry } from '@deltadao/pontusx-registry-hooks'
+
+function IdentitySearch() {
+  const { data, isLoading } = usePontusXRegistry({
+    search: {
+      legalName: 'deltaDAO', // Partial text match (case-insensitive)
+    },
+  })
+
+  if (isLoading) return <div>Loading...</div>
+
+  return (
+    <ul>
+      {data?.map((identity) => (
+        <li key={identity.walletAddress}>{identity.legalName}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+**Search Fields:**
+
+- **`walletAddress`**: Exact match for Web3 address (case-insensitive)
+
+  ```tsx
+  search: {
+    walletAddress: '0xe0d15ab8d5ef763a4757509daac262dbc357712'
+  }
+  ```
+
+- **`legalName`**: Partial text search for entity name (case-insensitive)
+
+  ```tsx
+  search: {
+    legalName: 'delta'
+  }
+  ```
+
+- **`registrationNumber`**: Search across all registration numbers (EORI, LEI, VATID, etc.)
+
+  ```tsx
+  search: {
+    registrationNumber: 'DE390726175076766'
+  } // EORI
+  search: {
+    registrationNumber: '391200FJBNU0YW987L26'
+  } // LEI
+  ```
+
+- **`countryCode`**: ISO 3166-1 alpha-2 country code (matches both codes and country names)
+  ```tsx
+  search: {
+    countryCode: 'DE'
+  } // Finds all German entities
+  ```
+
+**Combining Search Criteria:**
+
+All search criteria can be combined. Results must match ALL criteria (AND logic):
+
+```tsx
+const { data } = usePontusXRegistry({
+  search: {
+    countryCode: 'DE',
+    legalName: 'AG', // Only German companies with "AG" in their name
+  },
+})
+```
+
 ### Custom API Configuration
 
 ```tsx
@@ -250,10 +325,18 @@ interface GetIdentitiesResponse<V extends ApiVersion> {
   meta: PaginationMeta
 }
 
+interface PontusXSearchCriteria {
+  walletAddress?: string // Exact match for wallet address (case-insensitive)
+  legalName?: string // Partial text match for entity name (case-insensitive)
+  registrationNumber?: string // Search across registration numbers (EORI, LEI, VATID)
+  countryCode?: string // ISO 3166-1 alpha-2 country code (matches code and country name)
+}
+
 interface PontusXRegistryConfig {
   apiBaseUrl?: string // Custom API endpoint (default: 'https://cache.registry.pontus-x.eu')
   apiVersion?: ApiVersion // API version to use (default: 'v1')
   batchSize?: number // Batch size for paginated requests (default: 100)
+  search?: PontusXSearchCriteria // Search criteria to filter identities
 }
 ```
 
