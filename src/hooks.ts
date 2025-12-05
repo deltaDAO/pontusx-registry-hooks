@@ -13,7 +13,113 @@ import {
   type PontusXIdentity,
   type PontusXIdentityDeprecated,
   type PontusXRegistryConfig,
+  type PontusXSearchCriteria,
 } from './types'
+
+/**
+ * Helper function to check if an identity matches the search criteria
+ */
+const matchIdentity = (
+  identity: PontusXIdentity<any> | PontusXIdentityDeprecated,
+  search: PontusXSearchCriteria,
+): boolean => {
+  // 1. Wallet Address Search (Exact match, case-insensitive)
+  if (search.walletAddress) {
+    if (
+      identity.walletAddress.toLowerCase() !==
+      search.walletAddress.toLowerCase()
+    ) {
+      return false
+    }
+  }
+
+  // 2. Legal Name Search (Partial match, case-insensitive)
+  if (search.legalName) {
+    if (
+      !identity.legalName ||
+      !identity.legalName.toLowerCase().includes(search.legalName.toLowerCase())
+    ) {
+      return false
+    }
+  }
+
+  // 3. Registration Number Search (Partial match on known fields)
+  if (search.registrationNumber) {
+    // Deprecated identities don't have credentialsData
+    if (identity.version !== 'v1') {
+      return false
+    }
+
+    const searchTerm = search.registrationNumber.toLowerCase()
+    const credentials = (identity as PontusXIdentity<'v1'>).credentialsData
+
+    if (!credentials) return false
+
+    // Check if any credential value matches the search term
+    // We specifically look for values in the credential objects
+    const hasMatch = Object.values(credentials).some((credential: any) => {
+      if (!credential || typeof credential !== 'object') return false
+
+      return Object.values(credential).some((value) => {
+        return (
+          typeof value === 'string' && value.toLowerCase().includes(searchTerm)
+        )
+      })
+    })
+
+    if (!hasMatch) return false
+  }
+
+  // 4. Country Search (Code or Name match)
+  if (search.countryCode) {
+    if (identity.version !== 'v1') {
+      return false
+    }
+
+    const credentials = (identity as PontusXIdentity<'v1'>).credentialsData
+    if (!credentials) return false
+
+    const searchCode = search.countryCode.toUpperCase()
+    let searchName: string | undefined
+
+    // Try to resolve country name from code using Intl API
+    try {
+      const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
+      searchName = regionNames.of(searchCode)
+    } catch {
+      // Invalid country code - no matches possible
+      return false
+    }
+
+    const hasMatch = Object.values(credentials).some((credential: any) => {
+      if (!credential || typeof credential !== 'object') return false
+
+      return Object.values(credential).some((value) => {
+        if (typeof value !== 'string') return false
+        const normalizedValue = value.trim()
+
+        // Check 1: Exact match for Country Code (e.g. "DE")
+        if (normalizedValue.toUpperCase() === searchCode) {
+          return true
+        }
+
+        // Check 2: Partial match for Country Name (e.g. "Germany")
+        if (
+          searchName &&
+          normalizedValue.toLowerCase().includes(searchName.toLowerCase())
+        ) {
+          return true
+        }
+
+        return false
+      })
+    })
+
+    if (!hasMatch) return false
+  }
+
+  return true
+}
 
 /**
  * Fetcher function for SWR - list endpoint with pagination
@@ -168,21 +274,32 @@ export function usePontusXRegistry<
   } = usePontusXRegistryDeprecated()
 
   const combinedData = useMemo(() => {
+    let result: (PontusXIdentity<V> | PontusXIdentityDeprecated)[] = []
+
     if (!config?.includeDeprecated || !deprecatedData) {
-      return swrResponse.data
+      result = swrResponse.data || []
+    } else {
+      const currentData = swrResponse.data || []
+      const currentAddresses = new Set(
+        currentData.map((id) => id.walletAddress.toLowerCase()),
+      )
+
+      const uniqueDeprecated = deprecatedData.filter(
+        (id) => !currentAddresses.has(id.walletAddress.toLowerCase()),
+      )
+
+      result = [...currentData, ...uniqueDeprecated]
     }
 
-    const currentData = swrResponse.data || []
-    const currentAddresses = new Set(
-      currentData.map((id) => id.walletAddress.toLowerCase()),
-    )
+    // Apply search filtering if criteria exists
+    if (config?.search) {
+      return result.filter((identity) =>
+        matchIdentity(identity, config.search!),
+      )
+    }
 
-    const uniqueDeprecated = deprecatedData.filter(
-      (id) => !currentAddresses.has(id.walletAddress.toLowerCase()),
-    )
-
-    return [...currentData, ...uniqueDeprecated]
-  }, [swrResponse.data, deprecatedData, config?.includeDeprecated])
+    return result
+  }, [swrResponse.data, deprecatedData, config])
 
   return {
     ...swrResponse,

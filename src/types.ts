@@ -98,8 +98,37 @@ export interface PontusXRegistryConfig {
   batchSize?: number
 
   /**
-   * Whether to include deprecated identities from the v0.x JSON file
+   * Whether to include deprecated identities from the v0.x JSON registry
    * @default false
    */
   includeDeprecated?: boolean
+
+  /**
+   * Search criteria to filter the registry
+   */
+  search?: PontusXSearchCriteria
+}
+
+/**
+ * Search criteria for filtering identities
+ */
+export interface PontusXSearchCriteria {
+  /**
+   * Search by wallet address (exact match, case-insensitive)
+   */
+  walletAddress?: string
+  /**
+   * Search by legal name (partial match, case-insensitive)
+   */
+  legalName?: string
+  /**
+   * Search by registration number (EORI, LEI, VATID)
+   * Checks against all available registration numbers
+   */
+  registrationNumber?: string
+  /**
+   * Search by ISO 3166-1 alpha-2 country code (e.g., 'DE', 'US', 'GB')
+   * Matches both country codes and resolved country names in credentials
+   */
+  countryCode?: string
 }

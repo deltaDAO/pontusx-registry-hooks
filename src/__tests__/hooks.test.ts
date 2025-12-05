@@ -80,6 +80,152 @@ describe('usePontusXRegistry', () => {
     )
     expect(duplicates?.length).toBe(1)
   })
+
+  describe('search functionality', () => {
+    it('should filter by wallet address', async () => {
+      const targetIdentity = mockDeltaDAOIdentities[0]
+      const { result } = renderHook(() =>
+        usePontusXRegistry({
+          search: { walletAddress: targetIdentity.walletAddress },
+        }),
+      )
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.data).toBeDefined()
+      expect(result.current.data?.length).toBe(1)
+      expect(result.current.data?.[0].walletAddress).toBe(
+        targetIdentity.walletAddress,
+      )
+    })
+
+    it('should filter by legal name', async () => {
+      const { result } = renderHook(() =>
+        usePontusXRegistry({
+          search: { legalName: 'deltaDAO' },
+        }),
+      )
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.data).toBeDefined()
+      // Both mock identities have "deltaDAO" in their name
+      expect(result.current.data?.length).toBe(2)
+    })
+
+    it('should filter by registration number (EORI)', async () => {
+      // First mock identity has EORI: DE390726175076766
+      const targetEORI = 'DE390726175076766'
+      const { result } = renderHook(() =>
+        usePontusXRegistry({
+          search: { registrationNumber: targetEORI },
+        }),
+      )
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.data).toBeDefined()
+      expect(result.current.data?.length).toBeGreaterThan(0)
+      // Check that we found identities with this EORI
+      const found = result.current.data?.every((id) => {
+        if (id.version !== 'v1') return false
+        const eori = (id as PontusXIdentity<'v1'>).credentialsData?.['gx:EORI']
+        return (eori as any)?.['gx:eori'] === targetEORI
+      })
+      expect(found).toBe(true)
+    })
+
+    it('should return empty list if no match found', async () => {
+      const { result } = renderHook(() =>
+        usePontusXRegistry({
+          search: { legalName: 'NonExistentCompany' },
+        }),
+      )
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.data).toBeDefined()
+      expect(result.current.data?.length).toBe(0)
+    })
+
+    it('should filter by country code', async () => {
+      const { result } = renderHook(() =>
+        usePontusXRegistry({
+          search: { countryCode: 'DE' },
+        }),
+      )
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.data).toBeDefined()
+      expect(result.current.data?.length).toBeGreaterThan(0)
+      // Verify that all results have Germany-related credentials
+      const allHaveDE = result.current.data?.every((id) => {
+        if (id.version !== 'v1') return false
+        const credentials = (id as PontusXIdentity<'v1'>).credentialsData
+        if (!credentials) return false
+
+        // Check if any credential has DE or Germany
+        return Object.values(credentials).some((credential: any) => {
+          if (!credential || typeof credential !== 'object') return false
+          return Object.values(credential).some((value) => {
+            if (typeof value !== 'string') return false
+            const normalized = value.trim().toUpperCase()
+            return (
+              normalized === 'DE' || value.toLowerCase().includes('germany')
+            )
+          })
+        })
+      })
+      expect(allHaveDE).toBe(true)
+    })
+
+    it('should handle invalid country code', async () => {
+      const { result } = renderHook(() =>
+        usePontusXRegistry({
+          search: { countryCode: 'INVALID' },
+        }),
+      )
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.data).toBeDefined()
+      expect(result.current.data?.length).toBe(0)
+    })
+
+    it('should match country name when searching by code', async () => {
+      // DE should resolve to "Germany" and match the country field in EORI
+      const { result } = renderHook(() =>
+        usePontusXRegistry({
+          search: { countryCode: 'DE' },
+        }),
+      )
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.data).toBeDefined()
+      const found = result.current.data?.some((id) => {
+        if (id.version !== 'v1') return false
+        const eori = (id as PontusXIdentity<'v1'>).credentialsData?.['gx:EORI']
+        return (eori as any)?.['gx:country'] === 'Germany'
+      })
+      expect(found).toBe(true)
+    })
+  })
 })
 
 describe('usePontusXRegistryDeprecated', () => {
